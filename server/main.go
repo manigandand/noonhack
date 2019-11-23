@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	v1 "noonhack/server/v1"
 
@@ -11,7 +12,7 @@ import (
 )
 
 const (
-	serverPort = 8080
+	serverPort = 9090
 )
 
 func main() {
@@ -41,5 +42,7 @@ func main() {
 	router.Route("/v1", v1.Init)
 
 	fmt.Println("Starting server on port:", serverPort)
-	http.ListenAndServe(fmt.Sprintf(":%s", serverPort), router)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", serverPort), router); err != nil {
+		log.Fatal(err)
+	}
 }

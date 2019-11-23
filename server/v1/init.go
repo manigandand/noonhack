@@ -3,11 +3,11 @@ package v1
 import (
 	"net/http"
 	"noonhack/errors"
+	"noonhack/respond"
 
 	"github.com/go-chi/chi"
 	"github.com/gorilla/context"
 	"github.com/labstack/gommon/log"
-	"github.com/squadcastHQ/auxpkg/respond"
 )
 
 // Init initializes all the v1 routes
@@ -27,8 +27,8 @@ func (f Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// APP Level Error
 		// TODO: handle 5XX, notify developers. Configurable
-		log.Errorf("ServiceName: %s, StatusCode: %d, Error: %s\n DEBUG: %s\n",
-			ServiceName, err.Status, err.Error(), err.Debug)
+		log.Errorf("StatusCode: %d, Error: %s\n DEBUG: %s\n",
+			err.Status, err.Error(), err.Debug)
 		respond.Fail(w, err)
 	}
 }
