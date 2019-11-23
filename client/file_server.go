@@ -41,7 +41,7 @@ func (f *FileServerQueue) Push(queueName string, input interface{}) *errors.AppE
 	if err != nil {
 		return errors.BadRequest(err.Error())
 	}
-	req, err := http.NewRequest(http.MethodGet, url, bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
 		return errors.InternalServer(err.Error())
 	}
@@ -59,13 +59,76 @@ func (f *FileServerQueue) Push(queueName string, input interface{}) *errors.AppE
 	}
 
 	whathappened := response["data"]
-	if res.StatusCode > 299 {
+	if res.StatusCode > 299 && f.client.ToRetry {
+		// Retry based on error context
+		reqID := time.Now().UnixNano()
+		f.client.RetryMU.Lock()
+		f.client.RetryCount++
+		f.client.RetryStat[reqID] = time.Now()
+		f.client.RetryMU.Unlock()
+
+		f.retryPush(reqID, url, body)
+	} else {
 		whathappened = response["meta"]
 	}
 
 	fmt.Println(whathappened)
-
 	return nil
+}
+
+func (f *FileServerQueue) retryPush(reqID int64, url string, body []byte) *errors.AppError {
+	f.client.RetryMU.RLock()
+	retryCount := f.client.RetryCount
+	retryStartAT, ok := f.client.RetryStat[reqID]
+	if !ok {
+		f.client.RetryMU.RUnlock()
+		return errors.InternalServer("invalid req id")
+	}
+	f.client.RetryMU.RUnlock()
+
+	// 1. check if it reach max count
+	if retryCount > f.client.MaxRetry {
+		return errors.BadRequest("max retry reached")
+	}
+	// 2. check if it exceeds the interval
+	if !retryStartAT.Before(time.Now()) {
+		return errors.InternalServer("retry time out exceeded")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
+	if err != nil {
+		return errors.InternalServer(err.Error())
+	}
+
+	client := http.DefaultClient
+	res, err := client.Do(req)
+	if err != nil {
+		return errors.InternalServer(err.Error())
+	}
+	defer res.Body.Close()
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		return errors.InternalServer(err.Error())
+	}
+
+	if res.StatusCode == 200 {
+		f.client.RetryMU.Lock()
+		f.client.RetryCount = 0
+		f.client.RetryMU.Unlock()
+		return nil
+	}
+
+	if res.StatusCode > 299 {
+		// Retry again based on error context
+		f.client.RetryMU.Lock()
+		f.client.RetryCount++
+		f.client.RetryMU.Unlock()
+
+		f.retryPush(reqID, url, body)
+	}
+
+	return errors.InternalServerStd()
 }
 
 // Poll implements the QueueClient interface Poll method

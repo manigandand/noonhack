@@ -36,9 +36,9 @@ type RetryConfig struct {
 	MaxRetry      int
 	RetryInterval time.Duration
 	// holds the state of error retry
-	RetryMU    sync.Mutex
+	RetryMU    sync.RWMutex
 	RetryCount int
-	RetryStat  map[string]time.Time
+	RetryStat  map[int64]time.Time
 }
 
 // NewClient constructs the client object and returns QueueClient interface
@@ -49,7 +49,7 @@ func NewClient(serviceName string) QueueClient {
 		ServiceName: serviceName,
 		RetryConfig: RetryConfig{
 			ToRetry:   false,
-			RetryStat: make(map[string]time.Time, 0),
+			RetryStat: make(map[int64]time.Time, 0),
 		},
 	}
 
