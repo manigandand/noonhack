@@ -19,6 +19,7 @@ type QueueClient interface {
 }
 
 // Client holds the file queue system config
+// TODO: we can have http.Client that can be configurable by the service/consumer
 type Client struct {
 	sync.RWMutex
 	ServerHost string
