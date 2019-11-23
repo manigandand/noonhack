@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"noonhack/errors"
 	"noonhack/respond"
 	"noonhack/types"
-	"os"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -53,32 +53,35 @@ func queueServerHandler(w http.ResponseWriter, r *http.Request) *errors.AppError
 }
 
 func writeDataToFile(path string, content *queueDataInfo) error {
+	output, err := readFile(path)
+	if err != nil {
+		return errors.InternalServer(err.Error())
+	}
+	output[fmt.Sprintf("%+v", time.Now().UnixNano())] = content
+	fmt.Println(output)
+
+	jsonData, err := json.Marshal(output)
+	if err != nil {
+		return err
+	}
+
 	queueMu.Lock()
 	defer queueMu.Unlock()
 
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0600)
+	err = ioutil.WriteFile(path, jsonData, 0666)
 	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	data := map[int64]*queueDataInfo{
-		time.Now().UnixNano(): content,
-	}
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	s := string(jsonData) + "\n"
-	if _, err = f.WriteString(s); err != nil {
-		return err
+		log.Fatal(err)
 	}
 
-	daa, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
+	// f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0600)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer f.Close()
 
-	fmt.Print(string(daa))
+	// if _, err = f.Write(jsonData); err != nil {
+	// 	return err
+	// }
+
 	return nil
 }

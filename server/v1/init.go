@@ -41,8 +41,21 @@ func InitQueue() {
 	fmt.Printf("QUEUE |> \n%+v\n", FileQueue)
 }
 
+// FileExists checks the given filepath is valid or not
+func FileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
 func createQueueFile(name string) (string, error) {
 	filePath := fmt.Sprintf("%s/%s.json", config.QueueFileDir, name)
+	if FileExists(filePath) {
+		return filePath, nil
+	}
+
 	f, err := os.Create(filePath)
 	if err != nil {
 		log.Println("Can't clone default config", err)
@@ -61,7 +74,7 @@ func createQueueFile(name string) (string, error) {
 func Init(r chi.Router) {
 	r.Method(http.MethodGet, "/queue", Handler(listQueuesHandler))
 	r.Method(http.MethodPost, "/queue/{queueName}", Handler(queueServerHandler))
-	// r.Method(http.MethodGet, "/queue/{queueName}", Handler(listQueuesHandler))
+	r.Method(http.MethodGet, "/queue/{queueName}", Handler(readQueuesHandler))
 }
 
 // API Handler's ---------------------------------------------------------------
