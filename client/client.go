@@ -13,8 +13,8 @@ const (
 
 // QueueClient interface
 type QueueClient interface {
-	Push(queueName string)
-	Poll(queueName string)
+	Push(queueName string, input interface{}) *errors.AppError
+	Poll(queueName string) (*ListQueueDataResponse, *errors.AppError)
 	ListQueue() ([]string, *errors.AppError)
 }
 

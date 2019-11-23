@@ -7,10 +7,21 @@ import (
 	"net/http"
 	"noonhack/errors"
 	"noonhack/types"
+	"time"
 )
 
 type listQueueResponse struct {
 	Data []string    `json:"data"`
+	Meta interface{} `json:"meta,omitempty"`
+}
+
+type ListQueueDataResponse struct {
+	Data []struct {
+		Time        time.Time `json:"time"`
+		QueueName   string    `json:"queue_name"`
+		ServiceName string    `json:"service_name"`
+		Data        []byte    `json:"data"`
+	} `json:"data"`
 	Meta interface{} `json:"meta,omitempty"`
 }
 
@@ -58,8 +69,26 @@ func (f *FileServerQueue) Push(queueName string, input interface{}) *errors.AppE
 }
 
 // Poll implements the QueueClient interface Poll method
-func (f *FileServerQueue) Poll(queueName string) {
+func (f *FileServerQueue) Poll(queueName string) (*ListQueueDataResponse, *errors.AppError) {
+	url := fmt.Sprintf("%s/v1/queue/%s", f.client.ServerHost, queueName)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, errors.InternalServer(err.Error())
+	}
 
+	client := http.DefaultClient
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, errors.InternalServer(err.Error())
+	}
+	defer res.Body.Close()
+
+	var response ListQueueDataResponse
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		return nil, errors.InternalServer(err.Error())
+	}
+
+	return &response, nil
 }
 
 // ListQueue implements the QueueClient interface ListQueue method
@@ -82,6 +111,7 @@ func (f *FileServerQueue) ListQueue() ([]string, *errors.AppError) {
 	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
 		return []string{}, errors.InternalServer(err.Error())
 	}
+	// TODO: validate status code
 
 	return response.Data, nil
 }

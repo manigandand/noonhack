@@ -40,6 +40,9 @@ func readFile(path string) (map[string]*queueDataInfo, error) {
 
 	var output = make(map[string]*queueDataInfo)
 	if err := json.Unmarshal(bytestream, &output); err != nil {
+		if err.Error() == "unexpected end of JSON input" {
+			return output, nil
+		}
 		return nil, err
 	}
 

@@ -15,10 +15,11 @@ import (
 )
 
 type queueDataInfo struct {
-	Time        time.Time `json:"time"`
-	QueueName   string    `json:"queue_name"`
-	ServiceName string    `json:"service_name"`
-	Data        []byte    `json:"data"`
+	Time        time.Time   `json:"time"`
+	QueueName   string      `json:"queue_name"`
+	ServiceName string      `json:"service_name"`
+	Data        interface{} `json:"data"`
+	DataBytes   []byte      `json:"data_bytes"`
 }
 
 func queueServerHandler(w http.ResponseWriter, r *http.Request) *errors.AppError {
@@ -44,9 +45,12 @@ func queueServerHandler(w http.ResponseWriter, r *http.Request) *errors.AppError
 		Time:        time.Now(),
 		QueueName:   queueName,
 		ServiceName: input.ServiceName,
-		Data:        dataBytes,
+		Data:        input.Data,
+		DataBytes:   dataBytes,
 	}
-	writeDataToFile(qinfo.filePath, data)
+	if err := writeDataToFile(qinfo.filePath, data); err != nil {
+		return errors.InternalServer(err.Error())
+	}
 
 	respond.OK(w, "file saved succesfully", nil)
 	return nil
@@ -58,7 +62,6 @@ func writeDataToFile(path string, content *queueDataInfo) error {
 		return errors.InternalServer(err.Error())
 	}
 	output[fmt.Sprintf("%+v", time.Now().UnixNano())] = content
-	fmt.Println(output)
 
 	jsonData, err := json.Marshal(output)
 	if err != nil {
