@@ -80,6 +80,7 @@ func (f *FileServerQueue) retryPush(reqID int64, url string, body []byte) *error
 	f.client.RetryMU.RLock()
 	retryCount := f.client.RetryCount
 	retryStartAT, ok := f.client.RetryStat[reqID]
+	retryStartAT = retryStartAT.Add(f.client.RetryInterval)
 	if !ok {
 		f.client.RetryMU.RUnlock()
 		return errors.InternalServer("invalid req id")
