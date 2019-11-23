@@ -10,8 +10,23 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
+// FileQueue a global map that holds all the available queues in the server
+// TODO: value might be a struct that holds all the client service information
+// as well the file informations for the service
+var FileQueue map[string]interface{}
+
+// InitQueue populates static queues for now
+func InitQueue() {
+	FileQueue = map[string]interface{}{
+		"queue_a": "TOBE ADDED",
+		"queue_b": "TOBE ADDED",
+		"queue_c": "TOBE ADDED",
+	}
+}
+
 // Init initializes all the v1 routes
 func Init(r chi.Router) {
+	r.Method(http.MethodGet, "/queue", Handler(listQueuesHandler))
 	r.Method(http.MethodPost, "/queue", Handler(queueServerHandler))
 }
 

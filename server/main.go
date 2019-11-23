@@ -16,6 +16,9 @@ const (
 )
 
 func main() {
+	// init the queues
+	v1.InitQueue()
+
 	router := chi.NewRouter()
 	cors := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
