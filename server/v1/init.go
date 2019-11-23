@@ -60,8 +60,8 @@ func createQueueFile(name string) (string, error) {
 // Init initializes all the v1 routes
 func Init(r chi.Router) {
 	r.Method(http.MethodGet, "/queue", Handler(listQueuesHandler))
-	r.Method(http.MethodPost, "/queue", Handler(queueServerHandler))
-	// r.Method(http.MethodGet, "/queue/{name}", Handler(listQueuesHandler))
+	r.Method(http.MethodPost, "/queue/{queueName}", Handler(queueServerHandler))
+	// r.Method(http.MethodGet, "/queue/{queueName}", Handler(listQueuesHandler))
 }
 
 // API Handler's ---------------------------------------------------------------
