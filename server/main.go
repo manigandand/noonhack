@@ -4,15 +4,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"noonhack/config"
 	v1 "noonhack/server/v1"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/rs/cors"
-)
-
-const (
-	serverPort = 9090
 )
 
 func main() {
@@ -44,8 +41,8 @@ func main() {
 
 	router.Route("/v1", v1.Init)
 
-	fmt.Println("Starting server on port:", serverPort)
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", serverPort), router); err != nil {
+	fmt.Println("Starting server on port:", config.Port)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", config.Port), router); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -1,33 +1,67 @@
 package v1
 
 import (
+	"fmt"
+	"log"
 	"net/http"
+	"noonhack/config"
 	"noonhack/errors"
 	"noonhack/respond"
+	"os"
+	"sync"
 
 	"github.com/go-chi/chi"
 	"github.com/gorilla/context"
-	"github.com/labstack/gommon/log"
 )
+
+type queueInfo struct {
+	filePath string
+}
+
+var queueMu sync.RWMutex
 
 // FileQueue a global map that holds all the available queues in the server
 // TODO: value might be a struct that holds all the client service information
 // as well the file informations for the service
-var FileQueue map[string]interface{}
+var FileQueue = make(map[string]queueInfo)
 
 // InitQueue populates static queues for now
 func InitQueue() {
-	FileQueue = map[string]interface{}{
-		"queue_a": "TOBE ADDED",
-		"queue_b": "TOBE ADDED",
-		"queue_c": "TOBE ADDED",
+	queues := []string{"queue_a", "queue_b", "queue_c"}
+
+	for _, q := range queues {
+		// create a queue file if not
+		if path, err := createQueueFile(q); err == nil {
+			FileQueue[q] = queueInfo{
+				filePath: path,
+			}
+		}
 	}
+
+	fmt.Printf("QUEUE |> \n%+v\n", FileQueue)
+}
+
+func createQueueFile(name string) (string, error) {
+	filePath := fmt.Sprintf("%s/%s.json", config.QueueFileDir, name)
+	f, err := os.Create(filePath)
+	if err != nil {
+		log.Println("Can't clone default config", err)
+		return "", err
+	}
+
+	if err = f.Close(); err != nil {
+		log.Println(err)
+		return "", err
+	}
+
+	return filePath, nil
 }
 
 // Init initializes all the v1 routes
 func Init(r chi.Router) {
 	r.Method(http.MethodGet, "/queue", Handler(listQueuesHandler))
 	r.Method(http.MethodPost, "/queue", Handler(queueServerHandler))
+	// r.Method(http.MethodGet, "/queue/{name}", Handler(listQueuesHandler))
 }
 
 // API Handler's ---------------------------------------------------------------
@@ -42,7 +76,7 @@ func (f Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// APP Level Error
 		// TODO: handle 5XX, notify developers. Configurable
-		log.Errorf("StatusCode: %d, Error: %s\n DEBUG: %s\n",
+		fmt.Printf("StatusCode: %d, Error: %s\n DEBUG: %s\n",
 			err.Status, err.Error(), err.Debug)
 		respond.Fail(w, err)
 	}
